@@ -44,13 +44,29 @@ extern "ole32" fn CoTaskMemFree(pv: ?*anyopaque) callconv(.winapi) void;
 
 extern "kernel32" fn LoadLibraryA(name: [*:0]const u8) callconv(.winapi) ?std.os.windows.HMODULE;
 extern "kernel32" fn GetProcAddress(module: std.os.windows.HMODULE, name: [*:0]const u8) callconv(.winapi) ?*anyopaque;
+extern "kernel32" fn AcquireSRWLockExclusive(lock: *SRWLOCK) callconv(.winapi) void;
+extern "kernel32" fn ReleaseSRWLockExclusive(lock: *SRWLOCK) callconv(.winapi) void;
+
+const SRWLOCK = std.os.windows.SRWLOCK;
+
+const Mutex = struct {
+    srwlock: SRWLOCK = .{},
+
+    fn lock(self: *Mutex) void {
+        AcquireSRWLockExclusive(&self.srwlock);
+    }
+
+    fn unlock(self: *Mutex) void {
+        ReleaseSRWLockExclusive(&self.srwlock);
+    }
+};
 
 const CreateStringFn = *const fn (?[*]const u16, u32, *HSTRING) callconv(.winapi) HRESULT;
 const DeleteStringFn = *const fn (HSTRING) callconv(.winapi) HRESULT;
 const GetRawBufferFn = *const fn (HSTRING, ?*u32) callconv(.winapi) ?[*:0]const u16;
 
 var combase_loaded = std.atomic.Value(bool).init(false);
-var combase_mutex: std.Thread.Mutex = .{};
+var combase_mutex: Mutex = .{};
 var fn_create_string: ?CreateStringFn = null;
 var fn_delete_string: ?DeleteStringFn = null;
 var fn_get_raw_buffer: ?GetRawBufferFn = null;
