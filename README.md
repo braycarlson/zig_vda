@@ -1,6 +1,6 @@
 # zig_vda
 
-[![MIT License](http://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)](LICENSE)
+[![MIT License](http://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)](LICENSE.md)
 
 Zig bindings for the Windows virtual desktop COM interfaces.
 
@@ -19,7 +19,7 @@ Zig bindings for the Windows virtual desktop COM interfaces.
 
 ## Requirements
 
-- Zig 0.15.2 or later
+- Zig 0.17.0 or later
 - Windows 10 or later
 
 ## Usage
@@ -91,4 +91,4 @@ Jari Pennanen.
 
 ## License
 
-[MIT](LICENSE)
+[MIT](LICENSE.md)
