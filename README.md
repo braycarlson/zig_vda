@@ -7,20 +7,21 @@ Zig bindings for the Windows virtual desktop COM interfaces.
 ## Features
 
 - Enumerate virtual desktops
-- Switch the active desktop
-- Create and remove desktops
+- Switch the active desktop, with or without the shell's slide animation
+- Find adjacent desktops and the last active desktop
+- Create, remove, and reorder desktops
 - Get and set desktop names
 - Get and set desktop wallpapers
 - Move windows between desktops
 - Pin and unpin windows and applications
-- Query which desktop a window is on
-- Monitor desktop change events
-- Automatic reconnect when the COM service drops
+- Query which desktop a window is on, including pinned, owned, and child windows
+- Monitor desktop, window, Task View, and Alt+Tab events
+- Automatic reconnect when the COM service drops or explorer restarts
 
 ## Requirements
 
 - Zig 0.17.0 or later
-- Windows 10 or later
+- Windows 11 24H2, verified on build 26100.9457
 
 ## Usage
 
@@ -77,11 +78,13 @@ This library wraps the Windows virtual desktop COM interfaces. Only
 
 - [IVirtualDesktopManager](https://learn.microsoft.com/en-us/windows/win32/api/shobjidl_core/nn-shobjidl_core-ivirtualdesktopmanager)
 
-The remaining interfaces (`IVirtualDesktopManagerInternal`,
+The remaining interfaces (`IVirtualDesktopManagerInternal2`,
 `IApplicationViewCollection`, `IVirtualDesktopPinnedApps`,
-`IVirtualDesktopNotificationService`, and others) are undocumented internal
-shell interfaces. Their method layouts and GUIDs change between Windows builds
-and were reverse-engineered with reference to the project below.
+`IVirtualDesktopNotificationService`, `IMultitaskingViewVisibilityService`, and
+others) are undocumented internal shell interfaces. Their method layouts and
+GUIDs change between Windows builds and were reverse-engineered with reference
+to the project below. The [internals map](docs/internals.md) covers each
+interface, service, enumeration, and error the bindings rely on.
 
 ## Acknowledgments
 

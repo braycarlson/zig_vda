@@ -41,6 +41,7 @@ extern "ole32" fn CoCreateInstance(
     ppv: *?*anyopaque,
 ) callconv(.winapi) HRESULT;
 extern "ole32" fn CoTaskMemFree(pv: ?*anyopaque) callconv(.winapi) void;
+extern "ole32" fn CoDisconnectObject(unknown: *anyopaque, reserved: u32) callconv(.winapi) HRESULT;
 
 extern "kernel32" fn LoadLibraryA(name: [*:0]const u8) callconv(.winapi) ?std.os.windows.HMODULE;
 extern "kernel32" fn GetProcAddress(module: std.os.windows.HMODULE, name: [*:0]const u8) callconv(.winapi) ?*anyopaque;
@@ -113,21 +114,27 @@ pub fn createInstance(comptime T: type, clsid: *const GUID, context: u32, iid: *
 }
 
 pub fn releaseObj(ptr: anytype) void {
-    _ = @as(*IUnknown, @ptrCast(ptr)).release();
+    _ = @as(*IUnknown, @ptrCast(@alignCast(ptr))).release();
 }
 
 pub fn taskMemFree(ptr: ?*anyopaque) void {
     CoTaskMemFree(ptr);
 }
 
-pub const HSTRING_MAX = 256;
+pub fn disconnectObject(object: *anyopaque) void {
+    _ = CoDisconnectObject(object, 0);
+}
+
+pub const HSTRING_UTF8_MAX = 3072;
 
 pub fn createHString(utf8: []const u8) vd.Error!HSTRING {
     loadCombase();
     const create = fn_create_string orelse return vd.Error.ComCallFailed;
 
-    var wide_buf: [HSTRING_MAX]u16 = undefined;
-    const wide_len = std.unicode.utf8ToUtf16Le(&wide_buf, utf8) catch return vd.Error.StringTooLong;
+    if (utf8.len > HSTRING_UTF8_MAX) return vd.Error.StringTooLong;
+
+    var wide_buf: [HSTRING_UTF8_MAX]u16 = undefined;
+    const wide_len = std.unicode.utf8ToUtf16Le(&wide_buf, utf8) catch return vd.Error.InvalidArgument;
 
     var result: HSTRING = null;
     const hr = create(&wide_buf, @intCast(wide_len), &result);
@@ -142,7 +149,25 @@ pub fn deleteHString(string: HSTRING) void {
     _ = delete(string);
 }
 
-pub fn hstringToUtf8(string: HSTRING, buf: []u8) []const u8 {
+pub fn hstringToUtf8(string: HSTRING, buf: []u8) vd.Error![]const u8 {
+    loadCombase();
+    const get_buf = fn_get_raw_buffer orelse return vd.Error.ComCallFailed;
+
+    var length: u32 = 0;
+    const raw = get_buf(string, &length);
+
+    if (raw == null or length == 0) return buf[0..0];
+
+    const ptr = raw.?;
+    const utf16_slice = ptr[0..length];
+    if (std.unicode.calcWtf8Len(utf16_slice) > buf.len) return vd.Error.StringTooLong;
+
+    const utf8_len = std.unicode.wtf16LeToWtf8(buf, utf16_slice);
+
+    return buf[0..utf8_len];
+}
+
+pub fn hstringToUtf8Truncated(string: HSTRING, buf: []u8) []const u8 {
     loadCombase();
     const get_buf = fn_get_raw_buffer orelse return buf[0..0];
 
@@ -152,8 +177,15 @@ pub fn hstringToUtf8(string: HSTRING, buf: []u8) []const u8 {
     if (raw == null or length == 0) return buf[0..0];
 
     const ptr = raw.?;
-    const utf16_slice = ptr[0..length];
-    const utf8_len = std.unicode.utf16LeToUtf8(buf, utf16_slice) catch return buf[0..0];
+    var iterator = std.unicode.Wtf16LeIterator.init(ptr[0..length]);
+    var utf8_len: usize = 0;
+
+    while (iterator.nextCodepoint()) |codepoint| {
+        const size = std.unicode.utf8CodepointSequenceLength(codepoint) catch break;
+        if (utf8_len + size > buf.len) break;
+
+        utf8_len += std.unicode.wtf8Encode(codepoint, buf[utf8_len..]) catch break;
+    }
 
     return buf[0..utf8_len];
 }

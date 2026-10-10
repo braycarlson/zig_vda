@@ -9,8 +9,8 @@ const IApplicationView = @import("IApplicationView.zig").IApplicationView;
 
 const IVirtualDesktopVtbl = extern struct {
     base: com.IUnknownVtbl,
-    IsViewVisible: *const fn (*IVirtualDesktop, *IApplicationView, *u32) callconv(.winapi) HRESULT,
-    GetId: *const fn (*IVirtualDesktop, *GUID) callconv(.winapi) HRESULT,
+    IsViewVisible: *const fn (*IVirtualDesktop, *IApplicationView, *i32) callconv(.winapi) HRESULT,
+    GetID: *const fn (*IVirtualDesktop, *GUID) callconv(.winapi) HRESULT,
     GetName: *const fn (*IVirtualDesktop, *HSTRING) callconv(.winapi) HRESULT,
     GetWallpaper: *const fn (*IVirtualDesktop, *HSTRING) callconv(.winapi) HRESULT,
 };
@@ -20,7 +20,7 @@ pub const IVirtualDesktop = extern struct {
 
     pub fn getId(self: *IVirtualDesktop) vd.Error!GUID {
         var id: GUID = GUID.ZERO;
-        const hr = self.vtable.GetId(self, &id);
+        const hr = self.vtable.GetID(self, &id);
         try vd.hresultToError(hr);
 
         return id;
@@ -42,5 +42,13 @@ pub const IVirtualDesktop = extern struct {
         defer com.deleteHString(path);
 
         return com.hstringToUtf8(path, buf);
+    }
+
+    pub fn isViewVisible(self: *IVirtualDesktop, view: *IApplicationView) vd.Error!bool {
+        var visible: i32 = 0;
+        const hr = self.vtable.IsViewVisible(self, view, &visible);
+        try vd.hresultToError(hr);
+
+        return visible != 0;
     }
 };

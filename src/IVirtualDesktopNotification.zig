@@ -8,15 +8,24 @@ const HRESULT = vd.HRESULT;
 const HSTRING = com.HSTRING;
 const IVirtualDesktop = @import("IVirtualDesktop.zig").IVirtualDesktop;
 const IApplicationView = @import("IApplicationView.zig").IApplicationView;
+const ApplicationViewChange = @import("IApplicationViewChangeListener.zig").ApplicationViewChange;
+const MultitaskingViewType = @import("IMultitaskingViewVisibilityService.zig").MultitaskingViewType;
 
 pub const NotificationCallback = struct {
     onDesktopCreated: ?*const fn (GUID) void = null,
+    onDesktopDestroyBegin: ?*const fn (GUID, GUID) void = null,
+    onDesktopDestroyFailed: ?*const fn (GUID, GUID) void = null,
     onDesktopDestroyed: ?*const fn (GUID, GUID) void = null,
     onDesktopChanged: ?*const fn (GUID, GUID) void = null,
+    onDesktopSwitched: ?*const fn (GUID, u32) void = null,
     onDesktopNameChanged: ?*const fn (GUID, []const u8) void = null,
     onDesktopWallpaperChanged: ?*const fn (GUID, []const u8) void = null,
-    onDesktopMoved: ?*const fn (GUID, i64, i64) void = null,
-    onWindowChanged: ?*const fn (isize) void = null,
+    onDesktopMoved: ?*const fn (GUID, u32, u32) void = null,
+    onRemoteDesktopConnected: ?*const fn (GUID) void = null,
+    onWindowDesktopChanged: ?*const fn (isize, GUID) void = null,
+    onWindowEvent: ?*const fn (isize, ApplicationViewChange) void = null,
+    onMultitaskingViewShown: ?*const fn (MultitaskingViewType) void = null,
+    onMultitaskingViewDismissed: ?*const fn (MultitaskingViewType) void = null,
 };
 
 pub const IVirtualDesktopNotificationVtbl = extern struct {
@@ -27,12 +36,12 @@ pub const IVirtualDesktopNotificationVtbl = extern struct {
     VirtualDesktopDestroyBegin: *const fn (*VirtualDesktopNotification, *IVirtualDesktop, *IVirtualDesktop) callconv(.winapi) HRESULT,
     VirtualDesktopDestroyFailed: *const fn (*VirtualDesktopNotification, *IVirtualDesktop, *IVirtualDesktop) callconv(.winapi) HRESULT,
     VirtualDesktopDestroyed: *const fn (*VirtualDesktopNotification, *IVirtualDesktop, *IVirtualDesktop) callconv(.winapi) HRESULT,
-    VirtualDesktopMoved: *const fn (*VirtualDesktopNotification, *IVirtualDesktop, i64, i64) callconv(.winapi) HRESULT,
+    VirtualDesktopMoved: *const fn (*VirtualDesktopNotification, *IVirtualDesktop, u32, u32) callconv(.winapi) HRESULT,
     VirtualDesktopNameChanged: *const fn (*VirtualDesktopNotification, *IVirtualDesktop, HSTRING) callconv(.winapi) HRESULT,
     ViewVirtualDesktopChanged: *const fn (*VirtualDesktopNotification, *IApplicationView) callconv(.winapi) HRESULT,
     CurrentVirtualDesktopChanged: *const fn (*VirtualDesktopNotification, *IVirtualDesktop, *IVirtualDesktop) callconv(.winapi) HRESULT,
     VirtualDesktopWallpaperChanged: *const fn (*VirtualDesktopNotification, *IVirtualDesktop, HSTRING) callconv(.winapi) HRESULT,
-    VirtualDesktopSwitched: *const fn (*VirtualDesktopNotification, *IVirtualDesktop) callconv(.winapi) HRESULT,
+    VirtualDesktopSwitched: *const fn (*VirtualDesktopNotification, *IVirtualDesktop, u32) callconv(.winapi) HRESULT,
     RemoteVirtualDesktopConnected: *const fn (*VirtualDesktopNotification, *IVirtualDesktop) callconv(.winapi) HRESULT,
 };
 
@@ -80,11 +89,13 @@ pub const VirtualDesktopNotification = extern struct {
         return 0;
     }
 
-    fn onDestroyBegin(_: *VirtualDesktopNotification, _: *IVirtualDesktop, _: *IVirtualDesktop) callconv(.winapi) HRESULT {
+    fn onDestroyBegin(self: *VirtualDesktopNotification, destroyed: *IVirtualDesktop, fallback: *IVirtualDesktop) callconv(.winapi) HRESULT {
+        if (self.callback.onDesktopDestroyBegin) |cb| cb(desktopId(destroyed), desktopId(fallback));
         return 0;
     }
 
-    fn onDestroyFailed(_: *VirtualDesktopNotification, _: *IVirtualDesktop, _: *IVirtualDesktop) callconv(.winapi) HRESULT {
+    fn onDestroyFailed(self: *VirtualDesktopNotification, destroyed: *IVirtualDesktop, fallback: *IVirtualDesktop) callconv(.winapi) HRESULT {
+        if (self.callback.onDesktopDestroyFailed) |cb| cb(desktopId(destroyed), desktopId(fallback));
         return 0;
     }
 
@@ -93,25 +104,25 @@ pub const VirtualDesktopNotification = extern struct {
         return 0;
     }
 
-    fn onDesktopMoved(self: *VirtualDesktopNotification, desktop: *IVirtualDesktop, old_index: i64, new_index: i64) callconv(.winapi) HRESULT {
+    fn onDesktopMoved(self: *VirtualDesktopNotification, desktop: *IVirtualDesktop, old_index: u32, new_index: u32) callconv(.winapi) HRESULT {
         if (self.callback.onDesktopMoved) |cb| cb(desktopId(desktop), old_index, new_index);
         return 0;
     }
 
     fn onNameChanged(self: *VirtualDesktopNotification, desktop: *IVirtualDesktop, name: HSTRING) callconv(.winapi) HRESULT {
         if (self.callback.onDesktopNameChanged) |cb| {
-            var buf: [com.HSTRING_MAX]u8 = undefined;
-            const utf8 = com.hstringToUtf8(name, &buf);
-            cb(desktopId(desktop), utf8);
+            var buf: [com.HSTRING_UTF8_MAX]u8 = undefined;
+            cb(desktopId(desktop), com.hstringToUtf8Truncated(name, &buf));
         }
 
         return 0;
     }
 
     fn onViewChanged(self: *VirtualDesktopNotification, view: *IApplicationView) callconv(.winapi) HRESULT {
-        if (self.callback.onWindowChanged) |cb| {
+        if (self.callback.onWindowDesktopChanged) |cb| {
             const handle = view.getThumbnailWindow() catch 0;
-            cb(handle);
+            const desktop_id = view.getVirtualDesktopId() catch GUID.ZERO;
+            cb(handle, desktop_id);
         }
 
         return 0;
@@ -124,19 +135,20 @@ pub const VirtualDesktopNotification = extern struct {
 
     fn onWallpaperChanged(self: *VirtualDesktopNotification, desktop: *IVirtualDesktop, path: HSTRING) callconv(.winapi) HRESULT {
         if (self.callback.onDesktopWallpaperChanged) |cb| {
-            var buf: [com.HSTRING_MAX]u8 = undefined;
-            const utf8 = com.hstringToUtf8(path, &buf);
-            cb(desktopId(desktop), utf8);
+            var buf: [com.HSTRING_UTF8_MAX]u8 = undefined;
+            cb(desktopId(desktop), com.hstringToUtf8Truncated(path, &buf));
         }
 
         return 0;
     }
 
-    fn onDesktopSwitched(_: *VirtualDesktopNotification, _: *IVirtualDesktop) callconv(.winapi) HRESULT {
+    fn onDesktopSwitched(self: *VirtualDesktopNotification, desktop: *IVirtualDesktop, switch_type: u32) callconv(.winapi) HRESULT {
+        if (self.callback.onDesktopSwitched) |cb| cb(desktopId(desktop), switch_type);
         return 0;
     }
 
-    fn onRemoteConnected(_: *VirtualDesktopNotification, _: *IVirtualDesktop) callconv(.winapi) HRESULT {
+    fn onRemoteConnected(self: *VirtualDesktopNotification, desktop: *IVirtualDesktop) callconv(.winapi) HRESULT {
+        if (self.callback.onRemoteDesktopConnected) |cb| cb(desktopId(desktop));
         return 0;
     }
 

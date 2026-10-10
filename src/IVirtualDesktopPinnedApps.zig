@@ -6,9 +6,9 @@ const IApplicationView = @import("IApplicationView.zig").IApplicationView;
 
 const IVirtualDesktopPinnedAppsVtbl = extern struct {
     base: com.IUnknownVtbl,
-    IsAppPinned: *const fn (*IVirtualDesktopPinnedApps, ?[*:0]const u16, *i32) callconv(.winapi) HRESULT,
-    PinApp: *const fn (*IVirtualDesktopPinnedApps, ?[*:0]const u16) callconv(.winapi) HRESULT,
-    UnpinApp: *const fn (*IVirtualDesktopPinnedApps, ?[*:0]const u16) callconv(.winapi) HRESULT,
+    IsAppIdPinned: *const fn (*IVirtualDesktopPinnedApps, [*:0]const u16, *i32) callconv(.winapi) HRESULT,
+    PinAppID: *const fn (*IVirtualDesktopPinnedApps, [*:0]const u16) callconv(.winapi) HRESULT,
+    UnpinAppID: *const fn (*IVirtualDesktopPinnedApps, [*:0]const u16) callconv(.winapi) HRESULT,
     IsViewPinned: *const fn (*IVirtualDesktopPinnedApps, *IApplicationView, *i32) callconv(.winapi) HRESULT,
     PinView: *const fn (*IVirtualDesktopPinnedApps, *IApplicationView) callconv(.winapi) HRESULT,
     UnpinView: *const fn (*IVirtualDesktopPinnedApps, *IApplicationView) callconv(.winapi) HRESULT,
@@ -17,20 +17,20 @@ const IVirtualDesktopPinnedAppsVtbl = extern struct {
 pub const IVirtualDesktopPinnedApps = extern struct {
     vtable: *const IVirtualDesktopPinnedAppsVtbl,
 
-    pub fn isAppPinned(self: *IVirtualDesktopPinnedApps, app_id: ?[*:0]const u16) vd.Error!bool {
+    pub fn isAppPinned(self: *IVirtualDesktopPinnedApps, app_id: [*:0]const u16) vd.Error!bool {
         var pinned: i32 = 0;
-        const hr = self.vtable.IsAppPinned(self, app_id, &pinned);
+        const hr = self.vtable.IsAppIdPinned(self, app_id, &pinned);
         try vd.hresultToError(hr);
         return pinned != 0;
     }
 
-    pub fn pinApp(self: *IVirtualDesktopPinnedApps, app_id: ?[*:0]const u16) vd.Error!void {
-        const hr = self.vtable.PinApp(self, app_id);
+    pub fn pinApp(self: *IVirtualDesktopPinnedApps, app_id: [*:0]const u16) vd.Error!void {
+        const hr = self.vtable.PinAppID(self, app_id);
         try vd.hresultToError(hr);
     }
 
-    pub fn unpinApp(self: *IVirtualDesktopPinnedApps, app_id: ?[*:0]const u16) vd.Error!void {
-        const hr = self.vtable.UnpinApp(self, app_id);
+    pub fn unpinApp(self: *IVirtualDesktopPinnedApps, app_id: [*:0]const u16) vd.Error!void {
+        const hr = self.vtable.UnpinAppID(self, app_id);
         try vd.hresultToError(hr);
     }
 

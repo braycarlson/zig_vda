@@ -65,13 +65,23 @@ pub const CLSID_VirtualDesktopManager = parseGuid("AA509086-5CA9-4C25-8F95-589D3
 pub const IID_IVirtualDesktopManager = parseGuid("A5CD92FF-29BE-454C-8D04-D82879FB3F1B");
 
 pub const CLSID_ImmersiveShell = parseGuid("C2F03A33-21F5-47FA-B4BB-156362A2F239");
-pub const CLSID_VirtualDesktopManagerInternal = parseGuid("C5E0CDCA-7B6E-41B2-9FC4-D93975CC467B");
-pub const CLSID_VirtualDesktopPinnedApps = parseGuid("B5A399E7-1C87-46B8-88E9-FC5747B171BD");
-pub const CLSID_VirtualDesktopNotificationService = parseGuid("A501FDEC-4A09-464C-AE4E-1B9C21B84918");
+pub const SID_VirtualDesktopManager = parseGuid("C5E0CDCA-7B6E-41B2-9FC4-D93975CC467B");
+pub const SID_VirtualDesktopPinnedApps = parseGuid("B5A399E7-1C87-46B8-88E9-FC5747B171BD");
+pub const SID_VirtualDesktopNotificationService = parseGuid("A501FDEC-4A09-464C-AE4E-1B9C21B84918");
+pub const SID_MultitaskingViewVisibilityService = parseGuid("785702DD-B8EF-469F-8C19-E91B5F4CA564");
 
 pub const IID_IVirtualDesktop = parseGuid("3F07F4BE-B107-441A-AF0F-39D82529072C");
-pub const IID_IVirtualDesktopManagerInternal = parseGuid("53F5CA0B-158F-4124-900C-057158060B27");
+pub const IID_IVirtualDesktop2 = parseGuid("A871910E-6CC0-4E65-8B9B-458CE9115E30");
+pub const IID_IVirtualDesktopManagerInternal = parseGuid("4970BA3D-FD4E-4647-BEA3-D89076EF4B9C");
+pub const IID_IVirtualDesktopManagerInternal2 = parseGuid("53F5CA0B-158F-4124-900C-057158060B27");
+pub const IID_IApplicationView = parseGuid("372E1D3B-38D3-42E4-A15B-8AB2B178F513");
 pub const IID_IApplicationViewCollection = parseGuid("1841C6D7-4F9D-42C0-AF41-8747538F10E5");
+pub const IID_IApplicationViewChangeListener = parseGuid("727F9E97-76EE-497B-A942-B6371328485C");
 pub const IID_IVirtualDesktopPinnedApps = parseGuid("4CE81583-1E4C-4632-A621-07A53543148F");
 pub const IID_IVirtualDesktopNotificationService = parseGuid("0CD45E71-D927-4F15-8B0A-8FEF525337BF");
 pub const IID_IVirtualDesktopNotification = parseGuid("B9E5E94D-233E-49AB-AF5C-2B4541C3AADE");
+pub const IID_IMultitaskingViewVisibilityService = parseGuid("AC11CDA3-1601-4AD7-A40E-FE2CED187307");
+pub const IID_IMultitaskingViewVisibilityNotification = parseGuid("C59A7A3C-0676-4526-8192-5D0BF9B89B95");
+
+pub const DESKTOP_ID_PINNED_VIEW = parseGuid("C2DDEA68-66F2-4CF9-8264-1BFD00FBBBAC");
+pub const DESKTOP_ID_PINNED_APP = parseGuid("BB64D5B7-4DE3-4AB2-A87C-DB7601AEA7DC");
